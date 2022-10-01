@@ -2,7 +2,10 @@
   <nav aria-label="Page navigation example">
     <ul class="pagination">
       <!-- 前一頁 previousPage -->
-      <li :class="['page-item', { disable: currentPage === 1 }]">
+      <li
+        v-show="currentPage !== 1"
+        :class="['page-item', { disable: currentPage === 1 }]"
+      >
         <router-link
           class="page-link"
           aria-label="Previous"
@@ -29,7 +32,10 @@
       </li>
 
       <!-- 後一頁 nextPage -->
-      <li :class="['page-item', { disable: currentPage === totalPage.length }]">
+      <li
+        v-show="currentPage !== totalPage.length"
+        :class="['page-item', { disable: currentPage === totalPage.length }]"
+      >
         <router-link
           class="page-link"
           aria-label="Next"
@@ -68,3 +74,36 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.page-link {
+  height: 37px;
+  padding: 7px 20px;
+  color: #bd2333;
+}
+
+.page-item.active .page-link,
+.page-item.active span {
+  color: white;
+  background-color: #bd2333;
+  border-color: #bd2333;
+  z-index: 1;
+}
+
+.page-item span {
+  color: #bd2333;
+}
+
+a.page-link:hover,
+a.page-link:hover span {
+  color: white;
+  background-color: #bd2333;
+  border-color: #bd2333;
+}
+</style>

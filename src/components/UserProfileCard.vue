@@ -2,7 +2,7 @@
   <div class="card mb-3">
     <div class="row no-gutters">
       <div class="col-md-4">
-        <img :src="user.image" width="300px" height="300px" />
+        <img :src="user.image | emptyImage" width="300px" height="300px" />
       </div>
       <div class="col-md-8 text-center">
         <div class="card-body">
@@ -14,19 +14,19 @@
           </p>
           <ul class="list-unstyled">
             <li>
-              <strong> {{ commentCounts }} </strong>已評論餐廳
+              <strong>{{ user.commentsLength }}</strong> 已評論餐廳
             </li>
             <li>
-              <strong> {{ favoriteCounts }} </strong>收藏的餐廳
+              <strong>{{ user.favoriteRestaurantsLength }}</strong> 收藏的餐廳
             </li>
             <li>
-              <strong> {{ followingsCounts }} </strong>followings (追蹤者)
+              <strong>{{ user.followingsLength }}</strong> followings (追蹤者)
             </li>
             <li>
-              <strong> {{ followersCounts }} </strong> (追隨者)
+              <strong>{{ user.followersLength }}</strong> followers (追隨者)
             </li>
           </ul>
-          <template v-if="currentUser.id === user.id">
+          <template v-if="isCurrentUser">
             <router-link
               :to="{ name: 'user-edit', params: { id: user.id } }"
               class="btn btn-primary"
@@ -37,17 +37,19 @@
           <template v-else>
             <button
               v-if="isFollowed"
-              @click.stop.prevent="cancelFollow"
+              @click.stop.prevent="deleteFollowing(user.id)"
               type="button"
               class="btn btn-danger"
+              :disabled="isProcessing"
             >
               取消追蹤
             </button>
             <button
               v-else
-              @click.stop.prevent="follow"
+              @click.stop.prevent="addFollowing(user.id)"
               type="button"
               class="btn btn-primary"
+              :disabled="isProcessing"
             >
               追蹤
             </button>
@@ -59,62 +61,79 @@
 </template>
 
 <script>
-const dummyUser = {
-  currentUser: {
-    id: 1,
-    name: '管理者',
-    email: 'root@example.com',
-    image: 'https://i.pravatar.cc/300',
-    isAdmin: true
-  },
-  isAuthenticated: true
-}
+import { emptyImageFilter } from './../utils/mixins'
+import usersAPI from './../apis/users'
+import { Toast } from './../utils/helpers'
 
 export default {
+  mixins: [emptyImageFilter],
   props: {
     user: {
       type: Object,
       required: true
     },
-    initialFollow: {
+    isCurrentUser: {
+      type: Boolean,
+      required: true
+    },
+    initialIsFollowed: {
       type: Boolean,
       required: true
     }
   },
   data() {
     return {
-      currentUser: {},
-      isFollowed: this.initialFollow
+      isFollowed: this.initialIsFollowed,
+      isProcessing: false
     }
   },
-  created() {
-    this.fetchCurrentUser()
+  watch: {
+    initialIsFollowed(isFollowed) {
+      this.isFollowed = isFollowed
+    }
   },
   methods: {
-    fetchCurrentUser() {
-      this.currentUser = dummyUser.currentUser
+    async addFollowing(userId) {
+      try {
+        this.isProcessing = true
+        const { data } = await usersAPI.addFollowing({ userId })
+
+        if (data.status === 'error') {
+          throw new Error(data.message)
+        }
+
+        this.isFollowed = true
+        this.isProcessing = false
+      } catch (error) {
+        this.isProcessing = false
+        console.log(error)
+
+        Toast.fire({
+          icon: 'error',
+          title: '無法加入追蹤，請稍後再試'
+        })
+      }
     },
-    follow() {
-      this.isFollowed = true
-      this.user.Followers.push(this.currentUser)
-    },
-    cancelFollow() {
-      this.isFollowed = false
-      this.user.Followers.pop()
-    }
-  },
-  computed: {
-    commentCounts() {
-      return this.user.Comments.length
-    },
-    favoriteCounts() {
-      return this.user.FavoritedRestaurants.length
-    },
-    followersCounts() {
-      return this.user.Followers.length
-    },
-    followingsCounts() {
-      return this.user.Followings.length
+    async deleteFollowing(userId) {
+      try {
+        this.isProcessing = true
+        const { data } = await usersAPI.deleteFollowing({ userId })
+
+        if (data.status === 'error') {
+          throw new Error(data.message)
+        }
+
+        this.isFollowed = false
+        this.isProcessing = false
+      } catch (error) {
+        this.isProcessing = false
+        console.log(error)
+
+        Toast.fire({
+          icon: 'error',
+          title: '無法取消追蹤，請稍後再試'
+        })
+      }
     }
   }
 }

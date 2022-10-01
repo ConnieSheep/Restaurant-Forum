@@ -62,8 +62,12 @@
         />
       </div>
 
-      <button class="btn btn-lg btn-primary btn-block mb-3" type="submit">
-        Submit
+      <button
+        class="btn btn-lg btn-primary btn-block mb-3"
+        type="submit"
+        :disabled="isProcessing"
+      >
+        {{ isProcessing ? '處理中' : 'Submit' }}
       </button>
 
       <div class="text-center mb-3">
@@ -78,25 +82,73 @@
 </template>
 
 <script>
+import authorizationAPI from './../apis/authorization'
+import { Toast } from './../utils/helpers'
+
 export default {
   data() {
     return {
       name: '',
       email: '',
       password: '',
-      passwordCheck: ''
+      passwordCheck: '',
+      isProcessing: false
     }
   },
   methods: {
-    handleSubmit() {
-      const data = JSON.stringify({
-        name: this.name,
-        email: this.email,
-        password: this.password,
-        passwordCheck: this.passwordCheck
-      })
+    async handleSubmit() {
+      try {
+        if (
+          !this.name ||
+          !this.email ||
+          !this.password ||
+          !this.passwordCheck
+        ) {
+          Toast.fire({
+            icon: 'warning',
+            title: '請確認已填寫所有欄位'
+          })
+          return
+        }
 
-      console.log('data', data)
+        if (this.password !== this.passwordCheck) {
+          Toast.fire({
+            icon: 'warning',
+            title: '兩次密碼不相同'
+          })
+          this.password = ''
+          this.passwordCheck = ''
+          return
+        }
+
+        this.isProcessing = true
+
+        const { data } = await authorizationAPI.signUp({
+          name: this.name,
+          email: this.email,
+          password: this.password,
+          passwordCheck: this.passwordCheck
+        })
+
+        if (data.status === 'error') {
+          throw new Error(data.message)
+        }
+
+        Toast.fire({
+          icon: 'success',
+          title: '註冊成功'
+        })
+
+        this.$router.push('/signin')
+      } catch (error) {
+        this.isProcessing = false
+        console.log(error)
+
+        Toast.fire({
+          icon: 'error',
+          title: '無法註冊，請稍後再試'
+        })
+      }
     }
   }
 }

@@ -1,126 +1,89 @@
 <template>
   <div class="container py-5">
-    <div>
-      <h1>{{ restaurant.name }}</h1>
-      <span class="badge badge-secondary mt-1 mb-3">
-        {{ restaurant.Category.name }}
-      </span>
-    </div>
+    <Spinner v-if="isLoading" />
+    <template v-else>
+      <div>
+        <h1>{{ restaurant.name }}</h1>
+        <span class="badge badge-secondary mt-1 mb-3">
+          {{ restaurant.categoryName }}
+        </span>
+      </div>
 
-    <hr />
+      <hr />
 
-    <ul>
-      <li>評論數： {{ commentCounts }}</li>
-      <li>瀏覽次數： {{ restaurant.viewCounts }}</li>
-    </ul>
+      <ul>
+        <li>評論數： {{ restaurant.commentsLength }}</li>
+        <li>瀏覽次數： {{ restaurant.viewCounts }}</li>
+      </ul>
 
-    <button type="button" class="btn btn-link" @click="$router.back()">
-      回上一頁
-    </button>
+      <button type="button" class="btn btn-link" @click="$router.back()">
+        回上一頁
+      </button>
+    </template>
   </div>
 </template>
 
 <script>
-const dummyData = {
-  restaurant: {
-    id: 1,
-    name: 'Nora Dibbert',
-    tel: '(905) 737-3657 x4019',
-    address: '51844 Tyrese Ville',
-    opening_hours: '08:00',
-    description:
-      'Labore veritatis ipsa doloremque qui accusantium laudantium deserunt dolor consequatur. Ratione quidem sed velit suscipit cum sapiente repellat natus et. Ea ad sit laborum. Debitis earum voluptatibus temporibus aspernatur provident hic iure. Voluptatem accusantium sapiente. At corrupti distinctio fugiat vero praesentium.',
-    image:
-      'https://loremflickr.com/320/240/restaurant,food/?random=87.93904289218699',
-    viewCounts: 1,
-    createdAt: '2022-09-13T09:06:24.000Z',
-    updatedAt: '2022-09-15T14:05:17.000Z',
-    CategoryId: 2,
-    Category: {
-      id: 2,
-      name: '日本料理',
-      createdAt: '2022-09-13T09:06:24.000Z',
-      updatedAt: '2022-09-13T09:06:24.000Z'
-    },
-    Comments: [
-      {
-        id: 101,
-        text: 'Qui eum quam laboriosam dignissimos temporibus quas.',
-        UserId: 1,
-        RestaurantId: 1,
-        createdAt: '2022-09-13T09:06:24.000Z',
-        updatedAt: '2022-09-13T09:06:24.000Z',
-        User: {
-          id: 1,
-          name: 'root',
-          email: 'root@example.com',
-          password:
-            '$2a$10$L7pTOl8czjgUoLKM9JWwiuG5OPErkrtY8JiCdoSDnfkQr4/N.jpL6',
-          isAdmin: true,
-          image: null,
-          createdAt: '2022-09-13T09:06:24.000Z',
-          updatedAt: '2022-09-13T09:06:24.000Z'
-        }
-      },
-      {
-        id: 1,
-        text: 'Non ut nostrum atque vel.',
-        UserId: 3,
-        RestaurantId: 1,
-        createdAt: '2022-09-13T09:06:24.000Z',
-        updatedAt: '2022-09-13T09:06:24.000Z',
-        User: {
-          id: 3,
-          name: 'user2',
-          email: 'user2@example.com',
-          password:
-            '$2a$10$7X2GWm5JnNKK2r/0W.uDn.6Xw2uFfHRzMStVBpW6VEYC19GwGYfr.',
-          isAdmin: false,
-          image: null,
-          createdAt: '2022-09-13T09:06:24.000Z',
-          updatedAt: '2022-09-13T09:06:24.000Z'
-        }
-      },
-      {
-        id: 51,
-        text: 'Velit porro nesciunt vero enim nobis in unde eaque.',
-        UserId: 3,
-        RestaurantId: 1,
-        createdAt: '2022-09-13T09:06:24.000Z',
-        updatedAt: '2022-09-13T09:06:24.000Z',
-        User: {
-          id: 3,
-          name: 'user2',
-          email: 'user2@example.com',
-          password:
-            '$2a$10$7X2GWm5JnNKK2r/0W.uDn.6Xw2uFfHRzMStVBpW6VEYC19GwGYfr.',
-          isAdmin: false,
-          image: null,
-          createdAt: '2022-09-13T09:06:24.000Z',
-          updatedAt: '2022-09-13T09:06:24.000Z'
-        }
-      }
-    ]
-  }
-}
+import restaurantsAPI from './../apis/restaurants'
+import { Toast } from './../utils/helpers'
+import Spinner from './../components/Spinner'
 
 export default {
+  components: {
+    Spinner
+  },
   data() {
     return {
-      restaurant: {}
+      restaurant: {
+        id: -1,
+        name: '',
+        categoryName: '',
+        commentsLength: 0,
+        viewCounts: 0
+      },
+      isLoading: true
     }
   },
   created() {
-    this.fetchRestaurant()
+    const { id: restaurantId } = this.$route.params
+    this.fetchRestaurant(restaurantId)
+  },
+  beforeRouteUpdate(to, from, next) {
+    const { id: restaurantId } = to.params
+    this.fetchRestaurant(restaurantId)
+    next()
   },
   methods: {
-    fetchRestaurant() {
-      this.restaurant = dummyData.restaurant
-    }
-  },
-  computed: {
-    commentCounts() {
-      return this.restaurant.Comments.length
+    async fetchRestaurant(restaurantId) {
+      try {
+        this.isLoading = true
+        const { data } = await restaurantsAPI.getRestaurant({ restaurantId })
+
+        if (data.status === 'error') {
+          throw new Error(data.message)
+        }
+
+        const { id, name, Category, Comments, viewCounts } = data.restaurant
+
+        this.restaurant = {
+          ...this.restaurant,
+          id,
+          name,
+          categoryName: Category ? Category.name : '未分類',
+          commentsLength: Comments.length,
+          viewCounts
+        }
+        
+        this.isLoading = false
+      } catch (error) {
+        this.isLoading = false
+        console.log(error)
+
+        Toast.fire({
+          icon: 'error',
+          title: '無法取得餐廳資料，請稍後再試'
+        })
+      }
     }
   }
 }

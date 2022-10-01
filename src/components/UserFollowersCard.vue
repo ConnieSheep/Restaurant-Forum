@@ -1,7 +1,7 @@
 <template>
   <div class="card mb-3">
     <div class="card-header">
-      <strong> {{ followersCounts }} </strong>followers (追隨者)
+      <strong>{{ followers.length }}</strong> followers (追隨者)
     </div>
     <div class="card-body">
       <router-link
@@ -9,28 +9,26 @@
         :key="follower.id"
         :to="{ name: 'user', params: { id: follower.id } }"
       >
-        <img :src="follower.image" width="60" height="60" class="mr-1" />
+        <img
+          :src="follower.image | emptyImage"
+          width="60"
+          height="60"
+          class="mr-1"
+        />
       </router-link>
     </div>
   </div>
 </template>
 
 <script>
+import { emptyImageFilter } from './../utils/mixins'
+
 export default {
+  mixins: [emptyImageFilter],
   props: {
-    user: {
-      type: Object,
-      required: true
-    }
-  },
-  data() {
-    return {
-      followers: this.user.Followers
-    }
-  },
-  computed: {
-    followersCounts() {
-      return this.user.Followers.length
+    followers: {
+      type: Array,
+      default: () => []
     }
   }
 }
